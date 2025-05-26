@@ -1,0 +1,41 @@
+=== Setting up test ===075b57686
+Testing get_board_state
+  get_board_state: Correct state - PASSED        
+  get_board_state: Copy protection - PASSED      
+
+=== Setting up test ===
+Testing get_position
+  get_position: Valid position with data - PASSED
+  get_position: Valid position, no data - PASSED 
+  get_position: Invalid position - PASSED        
+
+=== Setting up test ===
+Testing __init__
+  __init__: Size and empty board - PASSED        
+
+=== Setting up test ===
+Testing remove_position
+  remove_position: Valid position - PASSED
+  remove_position: Invalid position - PASSED
+  remove_position: Empty position - PASSED
+
+=== Setting up test ===
+Testing set_position
+  set_position: Valid position - PASSED
+  set_position: Invalid position - PASSED
+  set_position: Overwrite position - PASSED
+
+=== Setting up test ===
+Testing update_attribute
+  update_attribute: Update existing attribute - PASSED
+  update_attribute: Add new attribute - PASSED
+  update_attribute: Invalid position - PASSED
+  update_attribute: Empty position - PASSED
+
+=== Setting up test ===
+Testing validate_coord
+  validate_coord: Valid and invalid coordinates - PASSED
+----------------------------------------------------------------------
+Ran 7 tests in 0.005s
+
+OK
