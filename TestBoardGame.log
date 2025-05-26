@@ -4,7 +4,7 @@ Testing get_board_state
   get_board_state: Copy protection - PASSED      
 
 === Setting up test ===
-Testing get_position
+Testing get_position -test[ush12]
   get_position: Valid position with data - PASSED
   get_position: Valid position, no data - PASSED 
   get_position: Invalid position - PASSED        
