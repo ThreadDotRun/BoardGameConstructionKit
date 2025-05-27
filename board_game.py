@@ -1,96 +1,94 @@
+import sqlite3
+import json
+
 class BoardGame:
-    def __init__(self, size):
-        """Initialize a 2D game board with given size (n x n).
+    def __init__(self, size, db_name=":memory:"):
+        """Initialize a 2D game board with given size (n x n) and SQLite database.
         
         Args:
             size (int): Length of each dimension (square board).
+            db_name (str): SQLite database file (default ':memory:' for in-memory).
         """
         self.size = size
-        self.board = {}  # Dictionary to store game state: (x, y) -> list of [key, value] pairs
+        self.conn = sqlite3.connect(db_name)
+        self.cursor = self.conn.cursor()
+        self._create_table()
+        self.board = self._load_board()
+
+    def _create_table(self):
+        """Create the board state table if it doesn't exist."""
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS board (
+                x INTEGER,
+                y INTEGER,
+                attributes TEXT,
+                PRIMARY KEY (x, y)
+            )
+        """)
+        self.conn.commit()
+
+    def _load_board(self):
+        """Load board state from SQLite into dictionary."""
+        board = {}
+        self.cursor.execute("SELECT x, y, attributes FROM board")
+        for x, y, attr_json in self.cursor.fetchall():
+            board[(x, y)] = json.loads(attr_json)
+        return board
 
     def validate_coord(self, x, y):
-        """Check if coordinates are within board bounds.
-        
-        Args:
-            x (int): X-coordinate.
-            y (int): Y-coordinate.
-            
-        Returns:
-            bool: True if valid, False otherwise.
-        """
+        """Check if coordinates are within board bounds."""
         return 0 <= x < self.size and 0 <= y < self.size
 
     def set_position(self, x, y, attributes):
-        """Set attributes for a board position.
-        
-        Args:
-            x (int): X-coordinate.
-            y (int): Y-coordinate.
-            attributes (list): List of [key, value] pairs (e.g., [['unit', 'tank'], ['health', 5]]).
-            
-        Returns:
-            bool: True if successful, False if invalid coordinates.
-        """
+        """Set attributes for a board position and save to SQLite."""
         if not self.validate_coord(x, y):
             return False
+        attr_json = json.dumps(attributes)
+        self.cursor.execute("""
+            INSERT OR REPLACE INTO board (x, y, attributes)
+            VALUES (?, ?, ?)
+        """, (x, y, attr_json))
+        self.conn.commit()
         self.board[(x, y)] = attributes
         return True
 
     def get_position(self, x, y):
-        """Get attributes for a board position.
-        
-        Args:
-            x (int): X-coordinate.
-            y (int): Y-coordinate.
-            
-        Returns:
-            list: List of [key, value] pairs if position exists, None if invalid or empty.
-        """
+        """Get attributes for a board position."""
         if not self.validate_coord(x, y):
             return None
         return self.board.get((x, y), None)
 
     def update_attribute(self, x, y, key, value):
-        """Update a specific attribute at a board position.
-        
-        Args:
-            x (int): X-coordinate.
-            y (int): Y-coordinate.
-            key (str): Attribute key to update.
-            value: New value for the attribute.
-            
-        Returns:
-            bool: True if successful, False if invalid coordinates or position empty.
-        """
+        """Update a specific attribute at a board position and save to SQLite."""
         if not self.validate_coord(x, y) or (x, y) not in self.board:
             return False
         attributes = self.board[(x, y)]
         for attr in attributes:
             if attr[0] == key:
                 attr[1] = value
-                return True
-        attributes.append([key, value])  # Add new attribute if key doesn't exist
+                break
+        else:
+            attributes.append([key, value])
+        attr_json = json.dumps(attributes)
+        self.cursor.execute("""
+            UPDATE board SET attributes = ? WHERE x = ? AND y = ?
+        """, (attr_json, x, y))
+        self.conn.commit()
         return True
 
     def remove_position(self, x, y):
-        """Remove all attributes from a board position.
-        
-        Args:
-            x (int): X-coordinate.
-            y (int): Y-coordinate.
-            
-        Returns:
-            bool: True if successful, False if invalid coordinates or position empty.
-        """
+        """Remove all attributes from a board position and delete from SQLite."""
         if not self.validate_coord(x, y) or (x, y) not in self.board:
             return False
+        self.cursor.execute("DELETE FROM board WHERE x = ? AND y = ?", (x, y))
+        self.conn.commit()
         del self.board[(x, y)]
         return True
 
     def get_board_state(self):
-        """Return the entire board state.
-        
-        Returns:
-            dict: Copy of the board state dictionary.
-        """
+        """Return the entire board state."""
         return self.board.copy()
+
+    def close(self):
+        """Close the SQLite connection."""
+        self.conn.close()
